@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:6.2
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - rate_limiting_net
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--requirepass", "yourpassword"]
+
+  kafka:
+    image: wurstmeister/kafka:latest
+    container_name: kafka
+    ports:
+      - "9093:9093"
+    environment:
+      KAFKA_ADVERTISED_LISTENER: INSIDE_KAFKA:9093
+      KAFKA_LISTENER: INSIDE_KAFKA:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL: PLAINTEXT
+      KAFKA_LISTENER_NAME: INSIDE_KAFKA
+      KAFKA_LISTENER_PORT: 9093
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    networks:
+      - rate_limiting_net
+
+  zookeeper:
+    image: wurstmeister/zookeeper:latest
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    networks:
+      - rate_limiting_net
+
+networks:
+  rate_limiting_net:
+
+volumes:
+  redis-data:
