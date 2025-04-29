@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package limiter;
+
+option go_package = "github.com/Andr-07/rate-limiter/proto;limiterpb";
+
+service RateLimiterService {
+  rpc Allow (AllowRequest) returns (AllowResponse);
+}
+
+message AllowRequest {
+  string user_id = 1;
+  string ip = 2;
+}
+
+message AllowResponse {
+  bool allowed = 1;
+}

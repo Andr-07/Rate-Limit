@@ -3,8 +3,8 @@ package kafka
 import (
 	"context"
 	"fmt"
-	configs "rate-limiter/config"
 
+	configs "github.com/Andr-07/rate-limiter/config"
 	"github.com/IBM/sarama"
 )
 

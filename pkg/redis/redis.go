@@ -3,9 +3,9 @@ package redis
 import (
 	"context"
 	"fmt"
+	"github.com/Andr-07/rate-limiter/config"
 	"log"
 	"math/rand"
-	"rate-limiter/config"
 	"strconv"
 	"time"
 
