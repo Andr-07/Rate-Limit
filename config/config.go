@@ -9,11 +9,16 @@ import (
 
 type Config struct {
 	Redis RedisConfig
+	Kafka KafkaConfig
 }
 
 type RedisConfig struct {
 	Addr     string
 	Password string
+}
+
+type KafkaConfig struct {
+	Addr string
 }
 
 func LoadConfig() *Config {
@@ -25,6 +30,9 @@ func LoadConfig() *Config {
 		Redis: RedisConfig{
 			Addr:     os.Getenv("REDIS_ADDR"),
 			Password: os.Getenv("REDIS_PASS"),
+		},
+		Kafka: KafkaConfig{
+			Addr: os.Getenv("KAFKA_ADDR"),
 		},
 	}
 }

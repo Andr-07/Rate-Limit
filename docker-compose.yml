@@ -12,21 +12,6 @@ services:
       - redis-data:/data
     command: ["redis-server", "--requirepass", "yourpassword"]
 
-  kafka:
-    image: wurstmeister/kafka:latest
-    container_name: kafka
-    ports:
-      - "9093:9093"
-    environment:
-      KAFKA_ADVERTISED_LISTENER: INSIDE_KAFKA:9093
-      KAFKA_LISTENER: INSIDE_KAFKA:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL: PLAINTEXT
-      KAFKA_LISTENER_NAME: INSIDE_KAFKA
-      KAFKA_LISTENER_PORT: 9093
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-    networks:
-      - rate_limiting_net
-
   zookeeper:
     image: wurstmeister/zookeeper:latest
     container_name: zookeeper
@@ -35,8 +20,27 @@ services:
     networks:
       - rate_limiting_net
 
+  kafka:
+    image: wurstmeister/kafka:latest
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_HOST_NAME: kafka
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - rate_limiting_net
+    depends_on:
+      - zookeeper
+
 networks:
   rate_limiting_net:
+    driver: bridge
 
 volumes:
   redis-data:
