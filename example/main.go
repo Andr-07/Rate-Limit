@@ -8,6 +8,7 @@ import (
 	"rate-limiter/pkg/kafka"
 	"rate-limiter/pkg/limiter"
 	"rate-limiter/pkg/redis"
+	"time"
 )
 
 func main() {
@@ -25,8 +26,12 @@ func main() {
 	defer kafka.Close()
 
 	// Example
-	limit := 5
-	rl := limiter.New(redis, kafka, limit)
+	rl := limiter.New(redis, kafka, &limiter.RateLimiterConfig{
+		MaxRequestsPerUser: 10,
+		MaxRequestsPerIP:   10,
+		TimeWindow:         60 * time.Second,
+		BlockDuration:      5 * time.Minute,
+	})
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))

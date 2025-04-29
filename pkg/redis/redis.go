@@ -4,12 +4,22 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"rate-limiter/config"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 )
 
+type RedisRequest struct {
+	Ip                 string
+	UserID             string
+	MaxRequestsPerUser int
+	MaxRequestsPerIP   int
+	TimeWindow         time.Duration
+	BlockDuration      time.Duration
+}
 type RedisClient struct {
 	Client *redis.Client
 }
@@ -37,28 +47,74 @@ func (r *RedisClient) Ping(ctx context.Context) {
 	fmt.Println("Redis is connected")
 }
 
-func (r *RedisClient) IsRequestAllowed(ctx context.Context, userID string, limit int) bool {
+func (r *RedisClient) IsRequestAllowed(ctx context.Context, config RedisRequest) bool {
 	now := time.Now().Unix()
-	windowStart := now - 60
-	key := fmt.Sprintf("ratelimit:%s", userID)
+	windowStart := now - int64(config.TimeWindow.Seconds())
 
-	_, err := r.Client.ZAdd(ctx, key, &redis.Z{Score: float64(now), Member: now}).Result()
+	userKey := fmt.Sprintf("ratelimit:user:%s", config.UserID)
+	ipKey := fmt.Sprintf("ratelimit:ip:%s", config.Ip)
+	userBlockKey := fmt.Sprintf("ratelimit:block:user:%s", config.UserID)
+	ipBlockKey := fmt.Sprintf("ratelimit:block:ip:%s", config.Ip)
+
+	// Check if user is blocked
+	if blockEndStr, err := r.Client.Get(ctx, userBlockKey).Result(); err == nil && blockEndStr != "" {
+		if blockEnd, _ := strconv.ParseInt(blockEndStr, 10, 64); now < blockEnd {
+			fmt.Println("User is blocked until", blockEnd)
+			return false
+		}
+		_ = r.Client.Del(ctx, userBlockKey).Err()
+	}
+
+	// Check if IP is blocked
+	if blockEndStr, err := r.Client.Get(ctx, ipBlockKey).Result(); err == nil && blockEndStr != "" {
+		if blockEnd, _ := strconv.ParseInt(blockEndStr, 10, 64); now < blockEnd {
+			fmt.Println("IP is blocked until", blockEnd)
+			return false
+		}
+		_ = r.Client.Del(ctx, ipBlockKey).Err()
+	}
+
+	// Helper function to track request
+	trackRequest := func(key string) (int64, error) {
+		member := fmt.Sprintf("%d:%d", now, rand.Int63())
+		if _, err := r.Client.ZAdd(ctx, key, &redis.Z{Score: float64(now), Member: member}).Result(); err != nil {
+			return 0, err
+		}
+		if _, err := r.Client.ZRemRangeByScore(ctx, key, "0", fmt.Sprintf("%d", windowStart)).Result(); err != nil {
+			return 0, err
+		}
+		return r.Client.ZCard(ctx, key).Result()
+	}
+
+	userCount, err := trackRequest(userKey)
 	if err != nil {
-		fmt.Println("Error adding to Redis:", err)
+		fmt.Println("Error tracking user requests:", err)
 		return false
 	}
 
-	_, err = r.Client.ZRemRangeByScore(ctx, key, "0", fmt.Sprintf("%d", windowStart)).Result()
+	ipCount, err := trackRequest(ipKey)
 	if err != nil {
-		fmt.Println("Error removing old entries:", err)
+		fmt.Println("Error tracking IP requests:", err)
 		return false
 	}
 
-	count, err := r.Client.ZCard(ctx, key).Result()
-	if err != nil {
-		fmt.Println("Error counting requests:", err)
+	// Block user if over limit
+	if int(userCount) > config.MaxRequestsPerUser {
+		blockEnd := now + int64(config.BlockDuration.Seconds())
+		if err := r.Client.Set(ctx, userBlockKey, blockEnd, config.BlockDuration).Err(); err != nil {
+			fmt.Println("Error setting user block:", err)
+		}
 		return false
 	}
 
-	return int(count) <= limit
+	// Block IP if over limit
+	if int(ipCount) > config.MaxRequestsPerIP {
+		blockEnd := now + int64(config.BlockDuration.Seconds())
+		if err := r.Client.Set(ctx, ipBlockKey, blockEnd, config.BlockDuration).Err(); err != nil {
+			fmt.Println("Error setting IP block:", err)
+		}
+		return false
+	}
+
+	return true
 }
