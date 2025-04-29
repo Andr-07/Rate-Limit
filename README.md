@@ -20,7 +20,7 @@ Supports per-user and per-IP limits, Redis backend, optional Kafka logging, and 
 Use `go get` to install the package:
 
 ```
-go get github.com/your-username/rate-limiter
+go get github.com/Andr-07/rate-limiter
 ```
 ---
 
@@ -31,7 +31,7 @@ go get github.com/your-username/rate-limiter
 ```
 import (
     "time"
-    "github.com/your-username/rate-limiter"
+    "github.com/Andr-07/rate-limiter"
 )
 
 config := &limiter.RateLimiterConfig{
