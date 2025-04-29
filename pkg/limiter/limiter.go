@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	ictx "rate-limiter/internal/context"
-	"rate-limiter/internal/utils"
-	"rate-limiter/pkg/kafka"
-	"rate-limiter/pkg/redis"
+	ictx "github.com/Andr-07/rate-limiter/internal/context"
+	"github.com/Andr-07/rate-limiter/internal/utils"
+	"github.com/Andr-07/rate-limiter/pkg/kafka"
+	"github.com/Andr-07/rate-limiter/pkg/redis"
 )
 
 type RateLimiterConfig struct {

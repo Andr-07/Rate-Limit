@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/Andr-07/rate-limiter/config"
+	"github.com/Andr-07/rate-limiter/pkg/kafka"
+	"github.com/Andr-07/rate-limiter/pkg/limiter"
+	"github.com/Andr-07/rate-limiter/pkg/redis"
 	"net/http"
-	"rate-limiter/config"
-	"rate-limiter/pkg/kafka"
-	"rate-limiter/pkg/limiter"
-	"rate-limiter/pkg/redis"
 	"time"
 )
 
